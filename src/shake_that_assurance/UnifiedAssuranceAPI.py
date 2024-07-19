@@ -5,7 +5,7 @@ from time import sleep
 class UnifiedAssuranceAPI:
     """Unified Assurance API wrapper."""
 
-    def __init__(self, username: str, password: str, endpoint: str, log_level=logging.INFO) -> None:
+    def __init__(self, endpoint: str, username: str, password: str, log_level=logging.INFO) -> None:
         """Initialize with required parameters."""
 
         self.ua_api_username = username or input("Enter Unified Assurance API username: ")
@@ -55,7 +55,6 @@ class UnifiedAssuranceAPI:
             else:
                 logging.error(f"Failed to get data after {max_attempts} attempts")
                 return {}
-
 
     def _post(self, api_path: str, request_body: dict, max_attempts = 1) -> dict:
         """Post data to Unified Assurance API."""
@@ -130,27 +129,20 @@ class UnifiedAssuranceAPI:
         logging.error("All attempts to put data have failed.")
         return {}
 
-    def _delete(self, api_path: str, request_body: dict = None, content_type="application/json") -> dict:
-        """Delete data in Assure1 API."""
+    def test_authentication(self) -> bool:
+        """Test the Unified Assurance API authentication."""
 
-        if content_type == "application/json":
-            data = json.dumps(request_body) if request_body else None
-        elif content_type == "application/x-www-form-urlencoded":
-            data = urllib.parse.urlencode(request_body) if request_body else None
-        else:
-            raise ValueError(f"Unsupported content type: {content_type}")
-
-        assure1_request = requests.delete(
-            self.assure1_endpoint + api_path,
-            auth=(self.assure1_api_username, self.assure1_api_password),
-            headers={"Content-Type": content_type, "Accept": "application/json"},
-            data=data
-        )
-
-        logging.debug(f"DELETE Data: {data}")
-        logging.debug(assure1_request.text)
-
-        return self._handle_response(assure1_request)
+        try:
+            response = self._get('/api/core/globalProperties')
+            if 'success' in response and response['success'] is True:
+                logging.info("Authentication successful.")
+                return True
+            else:
+                logging.error("Authentication failed.")
+                return False
+        except Exception as e:
+            logging.error(f"Exception occurred while testing authentication: {e}")
+            return False
 
     def get_groups(self) -> list:
         """Get all device groups from Unified Assurance API."""
@@ -186,7 +178,7 @@ class UnifiedAssuranceAPI:
             "page": 1,
             "start": 0,
         }
-        ua_response = self._get("/api/broker/servers", request_params)
+        ua_response = self._get("/api/broker/servers", request_params, 3)
         if not isinstance(ua_response, dict):
             logging.debug(ua_response)
             raise Exception(f"ua_response is not a dict: {ua_response}")
@@ -264,10 +256,10 @@ class UnifiedAssuranceAPI:
     def get_meta_type_id(self, meta_type_name: str) -> str:
         """Get the meta type ID for a given meta type name."""
 
-        response = self._get('/api/device/metaTypes')
+        response = self._get('/api/device/metaTypes', {}, 3)
         if not response.get('success'):
             logging.error(f"Failed to retrieve meta types: {response}")
-            return
+            raise ValueError(f"Failed to retrieve meta types: {response}")
         for meta_type in response.get('data'):
             if meta_type['DeviceMetaTypeName'] == meta_type_name:
                 return meta_type['DeviceMetaTypeID']
@@ -437,7 +429,7 @@ class UnifiedAssuranceAPI:
     def zone_exists(self, zone_name: str) -> bool:
         """Check if a zone with the given name already exists."""
 
-        response = self._get("/api/device/zones")
+        response = self._get("/api/device/zones", {}, 3)
         if response.get('success'):
             zones = response.get('data', [])
             for zone in zones:

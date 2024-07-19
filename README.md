@@ -2,26 +2,25 @@
 
 Python wrapper for making calls to Oracle Communications Unified Assurance, previously known as Assure1 and Monolith. It connects to the Presentation Server.
 
-## Usage
-
-Source environment variables if you don't want to manually enter credentials every time. In this example I'm using a password manager:
-
-```shell
-export UA_API_USER=$(pass UA_API_USERNAME)
-export UA_API_PASS=$(pass UA_API_PASSWORD)
-export UA_FQDN='https://presentation-server.example.com'
-```
-
 ## Development
 
 Clone the repo and install dependencies into a local virtual environment.
 
 ```shell
-git clone https://github.com/bleetube/shake-that-assurance
-cd shake-that-assurance
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --editable .
+```
+
+### Tests
+
+Export variables for your environment, otherwise the test will prompt you for input.
+
+```sh
+export UA_API_USER=example
+export UA_API_PASS=hunter2
+export UA_FQDN='https://presentation-server01.example.com'
+pytest
 ```
 
 ### Error Handling
